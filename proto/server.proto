@@ -1,0 +1,62 @@
+syntax = "proto3";
+package server;
+
+enum DisconnectReason {
+	SERVER_SHUTDOWN = 1;
+}
+
+enum UnitType {
+	UNDEFINED = 1;
+	HUMAN = 2;
+	UNDEAD = 3;
+}
+
+message Disconnect {
+	optional DisconnectReason reason = 1;
+}
+
+message GameObject {
+	int64 guid = 1;
+
+	optional float x = 2;
+	optional float y = 3;
+	optional string name = 4;
+	optional int32 flags = 5;
+	optional string image_name = 6;
+}
+
+message GameObjectList {
+	repeated GameObject objects = 1;
+}
+
+message Unit {
+
+	GameObject object = 1;
+	optional int32 health = 2;
+	optional int32 mana = 3;
+	reserved 4 to 15;
+
+	optional int32 type = 16;
+	optional int32 state = 17;
+}
+
+message UnitList {
+	repeated Unit units = 1;
+}
+
+message PlayerInfo {
+	Unit unitinfo = 1;
+
+	int32 mapid = 2;
+}
+
+message UnitDespawn {
+	int64 guid = 1;
+}
+
+message Map {
+	string name = 1;
+	
+	float x = 2;
+	float y = 3;
+}

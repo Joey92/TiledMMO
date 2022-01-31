@@ -1,0 +1,22 @@
+syntax = "proto3";
+package client;
+
+message Join {
+  int32 id = 1;
+}
+
+message Move {
+  float x = 1;
+  float y = 2;
+  optional bool up = 3;
+  optional bool down = 4;
+  optional bool left = 5;
+  optional bool right = 6;
+}
+
+message HeartBeat {
+}
+
+message Stop {
+}
+
