@@ -1,10 +1,11 @@
 import { NavMesh, Point } from 'navmesh';
 import applyScript from '../AI/index';
 import { encodeMessage } from '../network/opcodes';
-import GameObject from './GameObject';
+import GameObject, { GameObjectFlags } from './GameObject';
 import NPC from './NPC';
 import { UnitOpts } from './Unit';
 import { server as ServerMsg } from '../../../proto'
+import { sWorld } from './World';
 
 export interface TileMap {
 	compressionlevel: number;
@@ -47,7 +48,7 @@ export interface Object {
 	properties?: Property[];
 	rotation: number;
 	point?: boolean;
-	type: string;
+	type: 'Portal' | 'NPC';
 	visible: boolean;
 	width: number;
 	x: number;
@@ -100,6 +101,67 @@ function getProperties<T>(properties: Property[]): T {
 	}, {} as Record<string, any>) as T;
 }
 
+function portalFromObject(object: Object) {
+
+	if (object.point) {
+		console.error('Portals must be a rectangle in the tiled map')
+		return
+	}
+
+	if (!object.properties) {
+		return
+	}
+
+	const props = getProperties<{ map?: string, x?: number, y?: number, instanced?: boolean }>(object.properties);
+
+	if (!props.x || !props.y || !props.map) {
+		console.error("Invalid portal with name %s", object.name)
+		return
+	}
+
+	const obj = new GameObject({
+		name: object.name,
+		x: object.x,
+		y: object.y,
+		flags: GameObjectFlags.Interactable,
+		height: object.height,
+		width: object.height,
+	});
+
+	obj.onInteraction((p) => {
+		sWorld.getMapManager().movePlayerToMap(p, props.map!, props.instanced)
+	});
+	return obj
+}
+
+function npcFromObject(obj: Object) {
+	const props = obj.properties
+		? getProperties<UnitOpts & { scriptName?: string }>(obj.properties)
+		: {};
+
+	const npc = new NPC({
+		name: obj.name,
+		x: obj.x,
+		y: obj.y,
+		...props,
+	});
+
+	if (props.scriptName) {
+		// create script
+		const ai = applyScript(props.scriptName, npc);
+
+		if (ai) {
+			console.log(
+				'Loaded script %s for npc %d',
+				props.scriptName,
+				npc.getGUID(),
+			);
+		}
+	}
+
+	return npc;
+}
+
 export default class Map {
 	private static mapIDs: number = 0;
 
@@ -140,8 +202,8 @@ export default class Map {
 		return this.navmesh.findPath(start, end);
 	}
 
-	extractObjects(phase: number = 0): GameObject[] {
-		const objectLayers = this.tiledMap.layers.filter(l => l.type != 'objectgroup')
+	extractObjects(phase: number = 0) {
+		const objectLayers = this.tiledMap.layers.filter(l => l.type == 'objectgroup' && l.name != 'NavMesh')
 
 		if (objectLayers.length == 0) {
 			return []
@@ -154,7 +216,7 @@ export default class Map {
 
 			const props = getProperties<{ phase?: number }>(l.properties)
 
-			if (props.phase) {
+			if (props.phase !== undefined) {
 				return props.phase === phase
 			}
 
@@ -171,79 +233,15 @@ export default class Map {
 
 		return layerInPhase.objects.flatMap(object => {
 			switch (object.type) {
-				case "PORTAL":
-					if (!object.properties) {
-						return
-					}
-
-					const props = getProperties<{ map?: string, x?: number, y?: number }>(object.properties)
-
-					if (!props.x || !props.y || !props.map) {
-						console.error("Map %s has an invalid portal with name %s", this.name, object.name)
-						return
-					}
-
-					const obj = new GameObject({
-						name: object.name,
-						x: object.x,
-						y: object.y
-					})
-
-					obj.onInteraction((p) => {
-						p.sendDirectMessage(encodeMessage(ServerMsg.Map, {
-							name: props.map,
-							x: props.x,
-							y: props.y
-						}))
-					})
-					return obj
+				case "Portal":
+					return portalFromObject(object)
+				case 'NPC':
+					return npcFromObject(object)
 				default:
 					return
 			}
-		}) as GameObject[]
-	}
-
-	extractNPCs(phase: number = 0) {
-
-
-		const npclayer = this.tiledMap.layers.find((l) => l.name === 'NPCs');
-		if (!npclayer) {
-			return [];
-		}
-
-		if (!npclayer.objects) {
-			return [];
-		}
-
-		return npclayer.objects
-			.filter((objs) => objs.point)
-			.map((obj) => {
-				const props = obj.properties
-					? getProperties<UnitOpts>(obj.properties)
-					: {};
-
-				const npc = new NPC({
-					name: obj.name,
-					x: obj.x,
-					y: obj.y,
-					...props,
-				});
-
-				if (obj.type !== '') {
-					// create script
-					const ai = applyScript(obj.type, npc);
-
-					if (ai) {
-						console.log(
-							'Loaded script %s for npc %d',
-							obj.type,
-							npc.getGUID(),
-						);
-					}
-				}
-
-				return npc;
-			});
+		})
+			.filter(o => o) as (GameObject | NPC)[]
 	}
 
 	getTileMap() {

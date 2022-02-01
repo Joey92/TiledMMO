@@ -2,12 +2,16 @@ import Victor from 'victor';
 import MapInstance from './MapInstance';
 import Player from './Player';
 import { server as ServerMsg } from '../../../proto';
+import { ObjectType, ObjectTypes } from '../../types';
 
 export interface ObjectOpts {
 	name?: string;
 	x?: number;
 	y?: number;
 	imageName?: string;
+	flags?: GameObjectFlags;
+	height?: number;
+	width?: number;
 }
 
 export enum GameObjectFlags {
@@ -15,19 +19,33 @@ export enum GameObjectFlags {
 	Interactable = 1, // enable this if it should have interaction on the client
 }
 
-export default class GameObject {
+// GameObjects have a seperate GUID because of the protobuf messaging types
+export type GUID = number | Long
 
+export function extractGUIDnumber(guid: GUID): number {
+	if (guid instanceof Number) {
+		return guid as number
+	}
+
+	return (guid as Long).toNumber()
+}
+
+export default class GameObject implements ObjectType {
+
+	public objectType = ObjectTypes.GAME_OBJECT;
 	protected static guidCounter: number = 0;
 
-	protected GUID: number;
+	protected GUID: GUID;
 	protected name: string;
 	protected inWorld: boolean = false;
 	protected imageName: string;
-	protected updated: boolean = false;
+	protected updated: boolean = true;
 
 	protected speedMultiplier: number = 1;
 	protected map?: MapInstance;
-	protected flags: GameObjectFlags
+	protected flags: GameObjectFlags;
+	protected width?: number;
+	protected height?: number;
 
 	private interactionCallback?: (p: Player) => void
 
@@ -40,7 +58,10 @@ export default class GameObject {
 
 		this.imageName = opts.imageName || 'player_gfx';
 		this.name = opts.name || 'unknown';
-		this.flags = GameObjectFlags.None
+		this.flags = opts.flags !== undefined ? opts.flags : GameObjectFlags.None;
+
+		this.width = opts.width
+		this.height = opts.height
 	}
 
 	protected static newGUID() {
@@ -93,24 +114,28 @@ export default class GameObject {
 		this.interactionCallback = callback
 	}
 
-	createUpdate(full?: boolean) {
-		if (!this.updated) {
-			return
-		}
-
-		const update = {
-			guid: this.getGUID(),
-			x: this.position.x,
-			y: this.position.y
-		}
+	createUpdate(full?: boolean): any {
 
 		if (full) {
 			return ServerMsg.GameObject.create({
-				...update,
+				guid: this.getGUID(),
+				x: this.position.x,
+				y: this.position.y,
 				name: this.name,
+				flags: this.flags,
+				width: this.width,
+				height: this.height,
 			})
 		}
 
-		return ServerMsg.GameObject.create(update)
+		if (!this.updated) {
+			return
+		}
+		this.updated = false
+		return ServerMsg.GameObject.create({
+			guid: this.getGUID(),
+			x: this.position.x,
+			y: this.position.y
+		})
 	}
 }

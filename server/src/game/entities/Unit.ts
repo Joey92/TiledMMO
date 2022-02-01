@@ -6,6 +6,7 @@ import ThreadManager from './ThreadManager';
 import CombatManager from './CombatManager';
 import GameObject, { ObjectOpts } from './GameObject';
 import Victor from 'victor';
+import { ObjectTypes } from '../../types';
 
 const BASE_SPEED = 100;
 
@@ -33,6 +34,7 @@ export interface UnitOpts extends ObjectOpts {
 }
 
 export default class Unit extends GameObject {
+	public objectType = ObjectTypes.UNIT;
 	protected health: number;
 	protected maxHealth: number;
 	protected type: UnitType;
@@ -86,23 +88,16 @@ export default class Unit extends GameObject {
 		return this.map ? this.map.getUnitsAroundMe(this, range) : [];
 	}
 
-	createUnitUpdate(entire: boolean = false) {
+	createUpdate(entire: boolean = false) {
 		if (!this.inWorld) {
 			return;
 		}
 
-		const { x, y } = this.getPosition();
 		if (entire) {
-			const { name, mana, imageName, type, state } = this;
+			const { mana, type, state } = this;
 			this.updated = false;
 			return ServerMsg.Unit.create({
-				object: {
-					guid: this.getGUID(),
-					name,
-					x,
-					y,
-					imageName,
-				},
+				object: super.createUpdate(true),
 				mana,
 				type,
 				state,
@@ -115,11 +110,7 @@ export default class Unit extends GameObject {
 
 		this.updated = false;
 		return ServerMsg.Unit.create({
-			object: {
-				guid: this.getGUID(),
-				x,
-				y,
-			}
+			object: super.createUpdate(true)
 		});
 	}
 

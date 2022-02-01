@@ -20,3 +20,7 @@ message HeartBeat {
 message Stop {
 }
 
+message Interact {
+  int64 guid = 1;
+}
+

@@ -8,15 +8,16 @@ import { ServerOpcodes } from "../types";
 let ws: WebSocket;
 
 const coders = {
-  [ServerOpcodes.SERVER_MSG_UNIT]: ServerMsg.Unit,
-  [ServerOpcodes.SERVER_MSG_UNITLIST]: ServerMsg.UnitList,
+  [ServerOpcodes.UNIT]: ServerMsg.Unit,
+  [ServerOpcodes.UNITLIST]: ServerMsg.UnitList,
 
-  [ServerOpcodes.SERVER_MSG_DISCONNECT]: ServerMsg.Disconnect,
-  [ServerOpcodes.SERVER_MSG_UNIT_DESPAWN]: ServerMsg.UnitDespawn,
+  [ServerOpcodes.DISCONNECT]: ServerMsg.Disconnect,
+  [ServerOpcodes.DESPAWN]: ServerMsg.Despawn,
 
-  [ServerOpcodes.SERVER_MSG_MAP]: ServerMsg.Map,
+  [ServerOpcodes.MAP]: ServerMsg.Map,
+  [ServerOpcodes.GAMEOBJECT_LIST]: ServerMsg.GameObjectList,
+
 };
-
 
 const networkHandler = (game: Game, onOpen?: () => void) => {
 
@@ -64,10 +65,11 @@ const networkHandler = (game: Game, onOpen?: () => void) => {
 };
 
 export enum Opcodes {
-  CLIENT_MSG_JOIN = 0,
-  CLIENT_MSG_MOVE,
-  CLIENT_MSG_HEARTBEAT,
-  CLIENT_MSG_STOP,
+  JOIN = 0,
+  MOVE,
+  HEARTBEAT,
+  STOP,
+  INTERACT
 }
 
 interface coder<T = any> {
@@ -79,10 +81,11 @@ interface coder<T = any> {
 
 const opcodeForEncoder = new Map<string, Opcodes>()
 
-opcodeForEncoder.set(ClientMsg.Join.name, Opcodes.CLIENT_MSG_JOIN)
-opcodeForEncoder.set(ClientMsg.Move.name, Opcodes.CLIENT_MSG_MOVE)
-opcodeForEncoder.set(ClientMsg.HeartBeat.name, Opcodes.CLIENT_MSG_HEARTBEAT)
-opcodeForEncoder.set(ClientMsg.Stop.name, Opcodes.CLIENT_MSG_STOP)
+opcodeForEncoder.set(ClientMsg.Join.name, Opcodes.JOIN)
+opcodeForEncoder.set(ClientMsg.Move.name, Opcodes.MOVE)
+opcodeForEncoder.set(ClientMsg.HeartBeat.name, Opcodes.HEARTBEAT)
+opcodeForEncoder.set(ClientMsg.Stop.name, Opcodes.STOP)
+opcodeForEncoder.set(ClientMsg.Interact.name, Opcodes.INTERACT)
 
 export const sendMessage = <T>(coder: coder<T>, payload: Record<string, any>) => {
   if (ws.readyState !== 1) {

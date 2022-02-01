@@ -23,6 +23,8 @@ message GameObject {
 	optional string name = 4;
 	optional int32 flags = 5;
 	optional string image_name = 6;
+	optional float width = 7;
+	optional float height = 8;
 }
 
 message GameObjectList {
@@ -50,7 +52,7 @@ message PlayerInfo {
 	int32 mapid = 2;
 }
 
-message UnitDespawn {
+message Despawn {
 	int64 guid = 1;
 }
 

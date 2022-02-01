@@ -7,7 +7,7 @@ export enum ServerMessages {
   UNITLIST,
 
   DISCONNECT,
-  UNIT_DESPAWN,
+  DESPAWN,
   MAP,
 
   GAMEOBJECT_LIST
@@ -25,7 +25,7 @@ const opcodeForEncoder = new Map<string, ServerMessages>()
 opcodeForEncoder.set(ServerMsg.Unit.name, ServerMessages.UNIT)
 opcodeForEncoder.set(ServerMsg.UnitList.name, ServerMessages.UNITLIST)
 opcodeForEncoder.set(ServerMsg.Disconnect.name, ServerMessages.DISCONNECT)
-opcodeForEncoder.set(ServerMsg.UnitDespawn.name, ServerMessages.UNIT_DESPAWN)
+opcodeForEncoder.set(ServerMsg.Despawn.name, ServerMessages.DESPAWN)
 
 opcodeForEncoder.set(ServerMsg.Map.name, ServerMessages.MAP)
 opcodeForEncoder.set(ServerMsg.GameObjectList.name, ServerMessages.GAMEOBJECT_LIST)

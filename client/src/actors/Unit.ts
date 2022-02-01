@@ -1,4 +1,5 @@
 import Phaser from "phaser";
+import GameObject from "./GameObject";
 
 enum UnitState {
   STANDING = 1,
@@ -10,11 +11,10 @@ enum UnitType {
   UNDEAD,
 }
 
-export default class Unit extends Phaser.Physics.Arcade.Sprite {
+export default class Unit extends GameObject {
   private maxHealth: number;
   private health: number;
   protected maxSpeed: number = 100;
-  private readonly guid: number;
   private unitType: UnitType = UnitType.UNDEFINED;
   private unitState: UnitState = UnitState.STANDING;
 
@@ -24,10 +24,7 @@ export default class Unit extends Phaser.Physics.Arcade.Sprite {
     scene: Phaser.Scene,
     gfx: string | Phaser.Textures.Texture
   ) {
-    super(scene, 0, 0, gfx);
-    this.name = name;
-    this.guid = guid;
-    this.setDepth(10);
+    super(guid, name, scene, gfx);
   }
 
   getMaxHealth() {
@@ -40,10 +37,6 @@ export default class Unit extends Phaser.Physics.Arcade.Sprite {
 
   getName() {
     return this.name;
-  }
-
-  getGuid() {
-    return this.guid;
   }
 
   getUnitType() {

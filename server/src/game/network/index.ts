@@ -10,6 +10,7 @@ const coders: Record<number, any> = {
   [ClientOpcodes.MOVE]: client.Move,
   [ClientOpcodes.HEARTBEAT]: client.HeartBeat,
   [ClientOpcodes.STOP]: client.Stop,
+  [ClientOpcodes.INTERACT]: client.Interact,
 };
 
 const wss = new WebSocketServer({ port: 8081 });

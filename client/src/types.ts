@@ -8,10 +8,12 @@ export interface OpcodeHandlers {
 }
 
 export enum ServerOpcodes {
-	SERVER_MSG_UNIT = 0,
-	SERVER_MSG_UNITLIST,
+	UNIT = 0,
+	UNITLIST,
 
-	SERVER_MSG_DISCONNECT,
-	SERVER_MSG_UNIT_DESPAWN,
-	SERVER_MSG_MAP,
+	DISCONNECT,
+	DESPAWN,
+	MAP,
+
+	GAMEOBJECT_LIST,
 }

@@ -1,17 +1,17 @@
 import MapManager from "./MapManager";
 import Player from "./Player";
 import Session from "./Session";
-import "../network/OpcodeHandler";
+import "../network/index";
 
 type DummyState = Record<
   number,
-  { x: number; y: number; map: number; name: string }
+  { x: number; y: number; instanceId?: number; name: string, mapName: string }
 >;
 const dummyPlayerState: DummyState = {
   0: {
     x: 300,
     y: 500,
-    map: 0,
+    mapName: 'city',
     name: "Player 1",
   },
 };
@@ -59,15 +59,22 @@ export class World {
     // TODO replace with something more sophisticated
 
     player.setPosition(state.x, state.y);
-    const map = this.mapManager.getMapInstanceByID(state.map);
 
-    if (!map) {
-      console.log("Map not found for player");
-      return;
+    // Load previous instance if it exists
+    if (state.instanceId) {
+      const instance = this.mapManager.getMapInstanceByID(state.instanceId);
+
+      if (!instance) {
+        console.log("Map not found for player");
+        return;
+      }
+
+      console.log("Add player %s back into instance %d on map %s", player.getName(), instance.getGUID(), instance.getMap().getName());
+      instance.addPlayerToMap(player);
+      return
     }
 
-    console.log("Add player %s to map", player.getName());
-    map.addPlayerToMap(player);
+    this.mapManager.movePlayerToMap(player, state.mapName)
     return this;
   }
 
@@ -93,6 +100,10 @@ export class World {
 
   getPlayerAmount() {
     return this.numPlayers;
+  }
+
+  getMapManager() {
+    return this.mapManager
   }
 }
 

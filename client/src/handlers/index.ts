@@ -1,14 +1,16 @@
 import { OpcodeHandlers, ServerOpcodes } from "../types";
 import { handleMap } from "./Map";
-import { handleUnit, handleUnitDespawn, handleUnits } from "./Unit";
+import { handleUnit, handleUnits } from "./Unit";
+import { handleGameObjectList, handleDespawn } from './GameObject'
 
 
 const opcodeHandler: OpcodeHandlers = {
-	[ServerOpcodes.SERVER_MSG_UNITLIST]: handleUnits,
-	[ServerOpcodes.SERVER_MSG_UNIT]: handleUnit,
-	[ServerOpcodes.SERVER_MSG_UNIT_DESPAWN]: handleUnitDespawn,
+	[ServerOpcodes.UNITLIST]: handleUnits,
+	[ServerOpcodes.UNIT]: handleUnit,
+	[ServerOpcodes.DESPAWN]: handleDespawn,
 
-	[ServerOpcodes.SERVER_MSG_MAP]: handleMap,
+	[ServerOpcodes.MAP]: handleMap,
+	[ServerOpcodes.GAMEOBJECT_LIST]: handleGameObjectList,
 };
 
 export default opcodeHandler

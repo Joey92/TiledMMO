@@ -1,4 +1,5 @@
 import { Math } from "phaser";
+import GameObject from "../actors/GameObject";
 import Player from "../actors/Player";
 import Unit from "../actors/Unit";
 
@@ -88,7 +89,11 @@ export interface Objectgroup {
   y: number;
 }
 
-function getProperties<T extends {}>(properties: Property[]): T {
+function getProperties<T extends {}>(properties?: Property[]): T {
+
+  if (!properties) {
+    return {} as T;
+  }
   return properties.reduce((acc, prop) => {
     acc[prop.name] = prop.value;
     return acc;
@@ -103,7 +108,7 @@ interface PortalProps {
 
 export default class GameScene extends Phaser.Scene {
   private player: Player;
-  private units = new Map<number | Long, Unit>();
+  private gameObjects = new Map<number | Long, GameObject>();
 
   private name: string
 
@@ -112,10 +117,13 @@ export default class GameScene extends Phaser.Scene {
   }
 
   init({ name }) {
+    console.log('init')
     this.name = name
+    this.gameObjects = new Map<number | Long, GameObject>();
   }
 
   preload() {
+    console.log('preload')
     this.load.baseURL = "/maps/";
 
     this.load.tilemapTiledJSON(this.prefixedKey("map"), `${this.name}.json`);
@@ -126,13 +134,14 @@ export default class GameScene extends Phaser.Scene {
       endFrame: 3,
     });
   }
+
   create({ x, y }) {
-    const tileMapData = this.cache.tilemap.get(this.prefixedKey("map")).data
+    console.log('create')
+    const tileMapData = this.cache.tilemap.get(this.prefixedKey("map")).data as TileMap
 
     tileMapData.tilesets.forEach((ts) => {
       this.load.image(this.prefixedKey(ts.name), ts.image);
     });
-    this.load.start()
 
     this.load.once('complete', () => {
       const tMap = this.make.tilemap({ key: this.prefixedKey("map") });
@@ -142,9 +151,6 @@ export default class GameScene extends Phaser.Scene {
       );
 
       const tileLayers = tileMapData.layers.filter((l) => l.type === "tilelayer");
-      const objectLayers = tileMapData.layers.filter(
-        (l) => l.type === "objectgroup"
-      );
 
       tileLayers.forEach((l) => {
         const layer = tMap.createLayer(l.name, tilesets);
@@ -169,44 +175,11 @@ export default class GameScene extends Phaser.Scene {
           this.physics.add.collider(this.player, layer);
         }
       });
-
-      objectLayers.forEach((l) => {
-        l.objects.forEach((obj) => {
-          switch (obj.type) {
-            case "Portal":
-              const { map, x, y } = getProperties<PortalProps>(obj.properties);
-
-              if (!map || x === undefined || y === undefined) {
-                console.error(
-                  "Portal invalid, make sure it has properties map, x, and y."
-                );
-                return;
-              }
-
-              const zone = this.add.zone(obj.x, obj.y, obj.width, obj.height);
-
-              const geom = obj.ellipse
-                ? new Phaser.Geom.Circle(obj.x, obj.y, obj.width)
-                : new Phaser.Geom.Rectangle(obj.x, obj.y, obj.width, obj.height);
-
-              zone.setInteractive({
-                hitArea: geom,
-                useHandCursor: true,
-              } as Phaser.Types.Input.InputConfiguration);
-
-              zone.on("pointerdown", () => {
-                const dist = Math.Distance.BetweenPoints(zone, this.player);
-                if (dist > 50) {
-                  console.error("You need to go closer", dist);
-                  return;
-                }
-                this.scene.start(map, { x, y });
-              });
-              break;
-          }
-        });
-      });
     })
+
+    this.load.start()
+
+
 
     this.player = new Player(0, "Player", this);
 
@@ -223,13 +196,14 @@ export default class GameScene extends Phaser.Scene {
     this.cameras.main.startFollow(this.player);
   }
 
-  addUnitToMap(unit: Unit) {
-    this.units.set(unit.getGuid(), unit);
-    this.add.existing(unit);
+  addGameObjectToMap(go: GameObject) {
+    console.log('Add game object to scene', go)
+    this.gameObjects.set(go.getGuid(), go)
+    this.add.existing(go)
   }
 
-  getUnit(guid: number | Long) {
-    return this.units.get(guid);
+  getObject(guid: number | Long) {
+    return this.gameObjects.get(guid);
   }
 
   handleDisconnect() {

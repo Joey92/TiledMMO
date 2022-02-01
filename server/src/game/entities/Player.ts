@@ -1,7 +1,9 @@
+import { ObjectTypes } from "../../types";
 import Session from "./Session";
 import Unit, { UnitOpts } from "./Unit";
 
 export default class Player extends Unit {
+  public objectType = ObjectTypes.PLAYER;
   private readonly session: Session;
   private charmed: boolean = false
 
