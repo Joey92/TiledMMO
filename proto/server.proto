@@ -62,3 +62,13 @@ message Map {
 	float x = 2;
 	float y = 3;
 }
+
+message GossipMessage {
+	string text = 1;
+	repeated string choice = 2;
+}
+
+message Gossip {
+	int64 guid = 1;
+	repeated GossipMessage messages = 2;
+}
