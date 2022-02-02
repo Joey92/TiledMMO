@@ -56,4 +56,8 @@ export default class Unit extends GameObject {
     this.unitState = state;
     return this;
   }
+
+  getSpeed() {
+    return this.maxSpeed
+  }
 }

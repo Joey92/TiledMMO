@@ -1,7 +1,8 @@
-import { Math } from "phaser";
+import { client } from "../../proto";
 import GameObject from "../actors/GameObject";
 import Player from "../actors/Player";
-import Unit from "../actors/Unit";
+import Game from "../game";
+import { sendMessage } from "../network";
 
 export interface TileMap {
   compressionlevel: number;
@@ -100,15 +101,18 @@ function getProperties<T extends {}>(properties?: Property[]): T {
   }, {} as T);
 }
 
-interface PortalProps {
-  map: string;
-  x: number;
-  y: number;
+
+interface KeyboardKeys {
+  W: Phaser.Input.Keyboard.Key;
+  A: Phaser.Input.Keyboard.Key;
+  S: Phaser.Input.Keyboard.Key;
+  D: Phaser.Input.Keyboard.Key;
 }
 
 export default class GameScene extends Phaser.Scene {
   private player: Player;
   private gameObjects = new Map<number | Long, GameObject>();
+  private keybordKeys: KeyboardKeys;
 
   private name: string
 
@@ -117,69 +121,53 @@ export default class GameScene extends Phaser.Scene {
   }
 
   init({ name }) {
-    console.log('init')
+    console.log('init game')
     this.name = name
     this.gameObjects = new Map<number | Long, GameObject>();
-  }
 
-  preload() {
-    console.log('preload')
-    this.load.baseURL = "/maps/";
+    this.keybordKeys = this.input.keyboard.addKeys(
+      "W, A, S, D"
+    ) as KeyboardKeys;
 
-    this.load.tilemapTiledJSON(this.prefixedKey("map"), `${this.name}.json`);
+    this.events.on('preupdate', () => {
+      if (!this.keybordKeys) {
+        return;
+      }
+      let x = 0;
+      let y = 0;
 
-    this.load.spritesheet("player_gfx", "images/TX Player.png", {
-      frameWidth: 32,
-      frameHeight: 64,
-      endFrame: 3,
-    });
+      if (this.keybordKeys.W.isDown) {
+        y -= this.player.getSpeed();
+      }
+
+      if (this.keybordKeys.S.isDown) {
+        y += this.player.getSpeed();
+      }
+
+      if (this.keybordKeys.D.isDown) {
+        x += this.player.getSpeed();
+      }
+
+      if (this.keybordKeys.A.isDown) {
+        x -= this.player.getSpeed();
+      }
+
+      this.player.setVelocityX(x);
+      this.player.setVelocityY(y);
+
+      if (x != 0 || y != 0) {
+        sendMessage(
+          client.Move,
+          {
+            x: this.player.x,
+            y: this.player.y,
+          });
+      }
+    })
   }
 
   create({ x, y }) {
-    console.log('create')
-    const tileMapData = this.cache.tilemap.get(this.prefixedKey("map")).data as TileMap
-
-    tileMapData.tilesets.forEach((ts) => {
-      this.load.image(this.prefixedKey(ts.name), ts.image);
-    });
-
-    this.load.once('complete', () => {
-      const tMap = this.make.tilemap({ key: this.prefixedKey("map") });
-
-      const tilesets = tileMapData.tilesets.map((ts) =>
-        tMap.addTilesetImage(ts.name, this.prefixedKey(ts.name))
-      );
-
-      const tileLayers = tileMapData.layers.filter((l) => l.type === "tilelayer");
-
-      tileLayers.forEach((l) => {
-        const layer = tMap.createLayer(l.name, tilesets);
-        const { depth, collision } = getProperties<{
-          depth?: number;
-          collision?: boolean;
-        }>(l.properties);
-
-        if (depth) {
-          layer.setDepth(depth);
-        }
-
-        if (collision) {
-          tMap.setCollisionByProperty(
-            {
-              collision: true,
-            },
-            true,
-            false,
-            layer
-          );
-          this.physics.add.collider(this.player, layer);
-        }
-      });
-    })
-
-    this.load.start()
-
-
+    console.log('create game')
 
     this.player = new Player(0, "Player", this);
 
@@ -194,6 +182,57 @@ export default class GameScene extends Phaser.Scene {
     // this.player.setSize(30, 30)
 
     this.cameras.main.startFollow(this.player);
+    // this.cameras.main.setLerp(.1, .1)
+    this.cameras.main.setZoom(2);
+
+    const g = this.game as Game
+
+    const ui = g.getUiScene()
+
+    ui.addGossipText({ talker: this.player, text: "Hello" })
+      .addGossipText({ talker: this.player, text: "World" })
+      .addGossipText({ talker: this.player, text: "Whats going on?" })
+      .advanceGossip();
+
+    const tm = this.cache.tilemap.get(this.prefixedKey("map"))
+
+    console.log(tm);
+    const tileMapData = tm.data as TileMap
+
+    console.log(tileMapData)
+    const tMap = this.make.tilemap({ key: this.prefixedKey("map") });
+
+    const tilesets = tileMapData.tilesets.map((ts) =>
+      tMap.addTilesetImage(ts.name, this.prefixedKey(ts.name))
+    );
+
+    const tileLayers = tileMapData.layers.filter((l) => l.type === "tilelayer");
+
+    tileLayers.forEach((l) => {
+      const layer = tMap.createLayer(l.name, tilesets);
+      const { depth, collision } = getProperties<{
+        depth?: number;
+        collision?: boolean;
+      }>(l.properties);
+
+      if (depth) {
+        layer.setDepth(depth);
+      }
+
+      if (collision) {
+        tMap.setCollisionByProperty(
+          {
+            collision: true,
+          },
+          true,
+          false,
+          layer
+        );
+        this.physics.add.collider(this.player, layer);
+      }
+    });
+
+
   }
 
   addGameObjectToMap(go: GameObject) {
